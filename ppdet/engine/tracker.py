@@ -117,6 +117,7 @@ class Tracker(object):
 
         timer = Timer()
         results = []
+        embeddings = []
         frame_id = 0
         self.status['mode'] = 'track'
         self.model.eval()
@@ -130,7 +131,7 @@ class Tracker(object):
             timer.tic()
             online_targets = self.model(data)
 
-            online_tlwhs, online_ids = [], []
+            online_tlwhs, online_ids, online_embeddings = [], [], []
             for t in online_targets:
                 tlwh = t.tlwh
                 tid = t.track_id
@@ -138,15 +139,19 @@ class Tracker(object):
                 if tlwh[2] * tlwh[3] > tracker.min_box_area and not vertical:
                     online_tlwhs.append(tlwh)
                     online_ids.append(tid)
+                    if t.features:
+                        emb = t.features[-1]
+                        online_embeddings.append(emb)
             timer.toc()
 
             # save results
             results.append((frame_id + 1, online_tlwhs, online_ids))
+            embeddings.append((frame_id + 1, online_tlwhs, online_ids, online_embeddings))
             self.save_results(data, frame_id, online_ids, online_tlwhs,
                               timer.average_time, show_image, save_dir)
             frame_id += 1
 
-        return results, frame_id, timer.average_time, timer.calls
+        return results, embeddings,frame_id, timer.average_time, timer.calls
 
     def _eval_seq_sde(self,
                       dataloader,
@@ -333,6 +338,9 @@ class Tracker(object):
         if not os.path.exists(output_dir): os.makedirs(output_dir)
         result_root = os.path.join(output_dir, 'mot_results')
         if not os.path.exists(result_root): os.makedirs(result_root)
+        embedding_root = os.path.join(output_dir, "mot_embeddings")
+        if not os.path.exists(embedding_root):
+            os.makedirs(embedding_root)
         assert data_type in ['mot', 'kitti'], \
             "data_type should be 'mot' or 'kitti'"
         assert model_type in ['JDE', 'DeepSORT', 'FairMOT'], \
@@ -347,10 +355,11 @@ class Tracker(object):
         self.dataset.set_video(video_file)
         dataloader = create('TestMOTReader')(self.dataset, 0)
         result_filename = os.path.join(result_root, '{}.txt'.format(seq))
+        embedding_filename = os.path.join(embedding_root, "{}.npy".format(seq))
         frame_rate = self.dataset.frame_rate
 
         if model_type in ['JDE', 'FairMOT']:
-            results, nf, ta, tc = self._eval_seq_jde(
+            results, embeddings, nf, ta, tc = self._eval_seq_jde(
                 dataloader,
                 save_dir=save_dir,
                 show_image=show_image,
@@ -365,6 +374,10 @@ class Tracker(object):
         else:
             raise ValueError(model_type)
 
+        self.write_mot_results(result_filename, results, data_type)
+        if model_type in ["JDE", "FairMOT"]:
+            self.write_mot_embeddings(embedding_filename, embeddings)
+
         if save_videos:
             output_video_path = os.path.join(save_dir, '..',
                                              '{}_vis.mp4'.format(seq))
@@ -372,6 +385,22 @@ class Tracker(object):
                 save_dir, output_video_path)
             os.system(cmd_str)
             logger.info('Save video in {}'.format(output_video_path))
+
+    def write_mot_embeddings(self, filename, embeddings):
+        out = []
+        with open(filename, "wb") as f:
+            for frame_id, tlwhs, track_ids, embs in embeddings:
+                if embs:
+                    for tlwh, track_id, emb in zip(tlwhs, track_ids, embs):
+                        x1, y1, w, h = tlwh
+                        item = [frame_id, track_id, x1, y1, w, h, emb]
+                        out.append(item)
+                else:
+                    for tlwh, track_id in zip(tlwhs, track_ids):
+                        x1, y1, w, h = tlwh
+                        item = [frame_id, track_id, x1, y1, w, h, []]
+                        out.append(item)
+            np.save(f, np.asarray(out))
 
     def write_mot_results(self, filename, results, data_type='mot'):
         if data_type in ['mot', 'mcmot', 'lab']:
