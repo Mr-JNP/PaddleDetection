@@ -140,7 +140,7 @@ class Tracker(object):
                     online_tlwhs.append(tlwh)
                     online_ids.append(tid)
                     if t.features:
-                        emb = t.features[-1]
+                        emb = t.smooth_feat
                         online_embeddings.append(emb)
             timer.toc()
 
@@ -393,12 +393,13 @@ class Tracker(object):
                 if embs:
                     for tlwh, track_id, emb in zip(tlwhs, track_ids, embs):
                         x1, y1, w, h = tlwh
-                        item = [frame_id, track_id, x1, y1, w, h, emb]
+                        item = [frame_id, track_id, x1, y1, w, h, *emb]
                         out.append(item)
                 else:
                     for tlwh, track_id in zip(tlwhs, track_ids):
                         x1, y1, w, h = tlwh
-                        item = [frame_id, track_id, x1, y1, w, h, []]
+                        placeholder = np.full(128, -99)
+                        item = [frame_id, track_id, x1, y1, w, h, *placeholder]
                         out.append(item)
             np.save(f, np.asarray(out))
 

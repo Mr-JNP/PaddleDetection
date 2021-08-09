@@ -60,7 +60,7 @@ def plot_tracking(image,
         'frame: %d fps: %.2f num: %d' % (frame_id, fps, len(tlwhs)),
         (0, int(15 * text_scale)),
         cv2.FONT_HERSHEY_PLAIN,
-        text_scale, (0, 0, 255),
+        text_scale, (255, 0, 0),
         thickness=2)
 
     for i, tlwh in enumerate(tlwhs):
@@ -78,9 +78,10 @@ def plot_tracking(image,
             im,
             id_text, (intbox[0], intbox[1] + 30),
             cv2.FONT_HERSHEY_PLAIN,
-            text_scale, (0, 0, 255),
+            text_scale, (255, 0, 0),
             thickness=text_thickness)
-    return im
+    im_rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    return im_rgb
 
 
 def plot_trajectory(image, tlwhs, track_ids):
