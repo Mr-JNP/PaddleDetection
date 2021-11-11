@@ -15,3 +15,5 @@ sklearn
 motmetrics
 openpyxl
 cython_bbox
+# Message Queue for Inference Service
+pyzmq
