@@ -78,7 +78,7 @@ class Detection(object):
         tlwh (Tensor): Bounding box in format `(top left x, top left y,
             width, height)`.
         score (Tensor): Bounding box confidence score.
-        feature (Tensor): A feature vector that describes the object 
+        feature (Tensor): A feature vector that describes the object
             contained in this image.
         cls_id (Tensor): Bounding box category id.
     """
@@ -118,30 +118,25 @@ def write_mot_results(filename, results, data_type='mot', num_classes=1):
     else:
         raise ValueError(data_type)
 
-    f = open(filename, 'w')
-    for cls_id in range(num_classes):
-        for frame_id, tlwhs, tscores, track_ids in results[cls_id]:
-            for tlwh, score, track_id in zip(tlwhs, tscores, track_ids):
-                if track_id < 0: continue
-                if data_type == 'kitti':
-                    frame_id -= 1
-                elif data_type == 'mot':
-                    cls_id = -1
-                elif data_type == 'mcmot':
-                    cls_id = cls_id
+    result_list = []
 
-                x1, y1, w, h = tlwh
-                line = save_format.format(
-                    frame=frame_id,
-                    id=track_id,
-                    x1=x1,
-                    y1=y1,
-                    w=w,
-                    h=h,
-                    score=score,
-                    cls_id=cls_id)
-                f.write(line)
-    print('MOT results save in {}'.format(filename))
+    with open(filename, 'wb') as f:
+        for cls_id in range(num_classes):
+            for frame_id, tlwhs, tscores, track_ids in results[cls_id]:
+                for tlwh, score, track_id in zip(tlwhs, tscores, track_ids):
+                    if track_id < 0: continue
+                    if data_type == 'kitti':
+                        frame_id -= 1
+                    elif data_type == 'mot':
+                        cls_id = -1
+                    elif data_type == 'mcmot':
+                        cls_id = cls_id
+
+                    x1, y1, w, h = tlwh
+                    result_list.append([frame_id, track_id, x1, y1, w, h, score, cls_id])
+
+        np.save(f, np.asarray(result_list))
+        print('MOT results save in {}'.format(filename))
 
 
 def save_vis_results(data,

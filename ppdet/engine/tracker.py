@@ -234,7 +234,7 @@ class Tracker(object):
                     pred_scores = outs['bbox'][:, 1:2]
                     if not scaled:
                         # scaled means whether the coords after detector outputs
-                        # have been scaled back to the original image, set True 
+                        # have been scaled back to the original image, set True
                         # in general detector, set False in JDE YOLOv3.
                         pred_bboxes = scale_coords(outs['bbox'][:, 2:],
                                                    input_shape, im_shape,
@@ -445,7 +445,7 @@ class Tracker(object):
         assert model_type in ['JDE', 'DeepSORT', 'FairMOT'], \
             "model_type should be 'JDE', 'DeepSORT' or 'FairMOT'"
 
-        # run tracking        
+        # run tracking
         if video_file:
             seq = video_file.split('/')[-1].split('.')[0]
             self.dataset.set_video(video_file, frame_rate)
@@ -466,7 +466,7 @@ class Tracker(object):
                                 seq) if save_images or save_videos else None
 
         dataloader = create('TestMOTReader')(self.dataset, 0)
-        result_filename = os.path.join(result_root, '{}.txt'.format(seq))
+        result_filename = os.path.join(result_root, '{}.npy'.format(seq))
         if frame_rate == -1:
             frame_rate = self.dataset.frame_rate
 
