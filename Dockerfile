@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y ffmpeg
 
 # Clone PaddleDetection
 WORKDIR /PaddleDetection
-COPY /PaddleDetection /PaddleDetection
+COPY . /PaddleDetection
 
 # Install Mandatory Packages
 RUN pip install Cython
